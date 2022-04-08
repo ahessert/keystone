@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  sfeth:
+    build:
+      context: .
+      dockerfile: sfeth.Dockerfile
+    ports:
+      - 13042:13042
