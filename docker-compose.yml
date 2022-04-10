@@ -7,3 +7,19 @@ services:
       dockerfile: sfeth.Dockerfile
     ports:
       - 13042:13042
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8547"]
+      interval: 90s
+      timeout: 10s
+      retries: 5
+
+  grpcurl:
+  
+    depends_on:
+      sfeth:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: grpcurl.Dockerfile
+    ports: 
+      - 8080:8080
