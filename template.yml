@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Keystone
+  Pipeline from EVM node to parquet tables
+  Cloudformation configuration (deploy with SAM)
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Environment:
+      Variables:
+        AWS_REGION: 'us-east-2'
+
+Resources:
+  ProtoParquetJob:
+    Properties:
+      Type: AWS::Serverless::Function
+      CodeUri: parquet_factory
+      Handler: job_producer.run
+      Runtime: python3.9
+      Timeout: 900
+      Policies: [arn:aws:iam::aws:policy/AWSLambda_FullAccess]
+      Environment:
+          Variables:
+            PARQUET_FACTORY_ARN: !GetAtt ParquetFactory.Arn
+  ParquetFactory:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: parquet_factory
+      Handler: parquet_job.run
+      Runtime: python3.9
+      Timeout: 900 #15min is max runtime for lambda
+      Policies: [arn:aws:iam::aws:policy/AWSS3_FullAccess]
+      Environment:
+        Variables:
+          PARQUET_S3_BUCKET: ""
+          GRPC_ENDPOINT: ""
