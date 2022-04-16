@@ -2,9 +2,7 @@ version: '3'
 
 services:
   sfeth:
-    build:
-      context: .
-      dockerfile: sfeth.Dockerfile
+    image: 080706913315.dkr.ecr.us-east-1.amazonaws.com/sftest:latest
     ports:
       - 13042:13042
     healthcheck:
@@ -13,13 +11,11 @@ services:
       timeout: 10s
       retries: 5
 
-  grpcurl:
-  
-    depends_on:
-      sfeth:
-        condition: service_healthy
-    build:
-      context: .
-      dockerfile: grpcurl.Dockerfile
-    ports: 
-      - 8080:8080
+x-aws-cloudformation:
+  Resources:
+    SfethTCP13042TargetGroup:
+      Properties:
+        HealthCheckProtocol: HTTP
+        HealthCheckPath: /
+        HealthCheckPort: 8547
+

@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CloudMap:
+    Properties:
+      Description: Service Map for Docker Compose project keystone
+      Name: keystone.local
+      Vpc: vpc-01b7b35801755d814
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+  Cluster:
+    Properties:
+      ClusterName: keystone
+      Tags:
+      - Key: com.docker.compose.project
+        Value: keystone
+    Type: AWS::ECS::Cluster
+  Default13042Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: sfeth:13042/tcp on default network
+      FromPort: 13042
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 13042
+    Type: AWS::EC2::SecurityGroupIngress
+  DefaultNetwork:
+    Properties:
+      GroupDescription: keystone Security Group for default network
+      Tags:
+      - Key: com.docker.compose.project
+        Value: keystone
+      - Key: com.docker.compose.network
+        Value: keystone_default
+      VpcId: vpc-01b7b35801755d814
+    Type: AWS::EC2::SecurityGroup
+  DefaultNetworkIngress:
+    Properties:
+      Description: Allow communication within network default
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Ref: DefaultNetwork
+    Type: AWS::EC2::SecurityGroupIngress
+  LoadBalancer:
+    Properties:
+      LoadBalancerAttributes:
+      - Key: load_balancing.cross_zone.enabled
+        Value: "true"
+      Scheme: internet-facing
+      Subnets:
+      - subnet-06bc8ec1cdd8db627
+      - subnet-0caecc63d3f173c4d
+      - subnet-02b4be1b9e280b89d
+      - subnet-025a4203bba00063e
+      - subnet-0a71615f73bbc273b
+      - subnet-0f8138d8d2db0a340
+      Tags:
+      - Key: com.docker.compose.project
+        Value: keystone
+      Type: network
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  LogGroup:
+    Properties:
+      LogGroupName: /docker-compose/keystone
+    Type: AWS::Logs::LogGroup
+  SfethService:
+    DependsOn:
+    - SfethTCP13042Listener
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+        - Cluster
+        - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+      - ContainerName: sfeth
+        ContainerPort: 13042
+        TargetGroupArn:
+          Ref: SfethTCP13042TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+          - Ref: DefaultNetwork
+          Subnets:
+          - subnet-06bc8ec1cdd8db627
+          - subnet-0caecc63d3f173c4d
+          - subnet-02b4be1b9e280b89d
+          - subnet-025a4203bba00063e
+          - subnet-0a71615f73bbc273b
+          - subnet-0f8138d8d2db0a340
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt:
+          - SfethServiceDiscoveryEntry
+          - Arn
+      Tags:
+      - Key: com.docker.compose.project
+        Value: keystone
+      - Key: com.docker.compose.service
+        Value: sfeth
+      TaskDefinition:
+        Ref: SfethTaskDefinition
+    Type: AWS::ECS::Service
+  SfethServiceDiscoveryEntry:
+    Properties:
+      Description: '"sfeth" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+        - TTL: 60
+          Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: sfeth
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  SfethTCP13042Listener:
+    Properties:
+      DefaultActions:
+      - ForwardConfig:
+          TargetGroups:
+          - TargetGroupArn:
+              Ref: SfethTCP13042TargetGroup
+        Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 13042
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  SfethTCP13042TargetGroup:
+    Properties:
+      Port: 13042
+      Protocol: TCP
+      Tags:
+      - Key: com.docker.compose.project
+        Value: keystone
+      TargetType: ip
+      VpcId: vpc-01b7b35801755d814
+      HealthCheckPath: /
+      HealthCheckPort: 8547
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 6
+      UnhealthyThresholdCount: 6
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  SfethTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+      - Command:
+        - us-east-1.compute.internal
+        - keystone.local
+        Essential: false
+        Image: docker/ecs-searchdomain-sidecar:1.0
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: keystone
+        Name: Sfeth_ResolvConf_InitContainer
+      - DependsOn:
+        - Condition: SUCCESS
+          ContainerName: Sfeth_ResolvConf_InitContainer
+        Essential: true
+        HealthCheck:
+          Command:
+          - CMD
+          - curl
+          - -f
+          - http://localhost:8547
+          Interval: 90
+          Retries: 5
+          Timeout: 10
+        Image: 080706913315.dkr.ecr.us-east-1.amazonaws.com/sftest:latest@sha256:650914e6ff2c46fde281a69e66c2af9d09e5f14ba0ae53fc9af27be6381a0df3
+        LinuxParameters: {}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: keystone
+        Name: sfeth
+        PortMappings:
+        - ContainerPort: 13042
+          HostPort: 13042
+          Protocol: tcp
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: SfethTaskExecutionRole
+      Family: keystone-sfeth
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+      - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  SfethTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Condition: {}
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Tags:
+      - Key: com.docker.compose.project
+        Value: keystone
+      - Key: com.docker.compose.service
+        Value: sfeth
+    Type: AWS::IAM::Role
