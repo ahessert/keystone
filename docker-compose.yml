@@ -4,18 +4,21 @@ services:
   sfeth:
     image: 080706913315.dkr.ecr.us-east-1.amazonaws.com/sftest:latest
     ports:
-      - 13042:13042
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8547"]
-      interval: 90s
-      timeout: 10s
-      retries: 5
+      - target: 13042
+        x-aws-protocol: https
 
 x-aws-cloudformation:
   Resources:
-    SfethTCP13042TargetGroup:
+    Sfeth13042TargetGroup:
       Properties:
-        HealthCheckProtocol: HTTP
-        HealthCheckPath: /
-        HealthCheckPort: 8547
+        ProtocolVersion: GRPC
+        Protocol: HTTPS
+    Sfeth13042Listener:
+
+      Properties:
+        Protocol: HTTPS
+        SslPolicy: "ELBSecurityPolicy-2016-08"
+        Certificates:
+          CerfiticateArn: 1234
+
 
