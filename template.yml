@@ -1,24 +1,34 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Keystone
-  Pipeline from EVM node to parquet tables
-  Cloudformation configuration (deploy with SAM)
+  Keystone Lambdas
+  Keystone it the data pipeline from EVM node to parquet 
+  tables Cloudformation configuration (deploy with SAM)
   
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
-  Environment:
-      Variables:
-        AWS_REGION: 'us-east-2'
+  Function:
+    Runtime: python3.9
+    Timeout: 900 #15min is max runtime for lambda
+    CodeUri: parquet_factory
+    Layers: [!Ref PythonDependencyLayer]
+    # VpcConfig:
+    #   SubnetIds: ["subnet-dda408b6", "subnet-61c8d21b", "subnet-3bd89a77"]
+    Environment:
+        Variables:
+          GRPC_ENDPOINT: "keystone.local:13042"
+          PARQUET_S3_BUCKET: ""
 
 Resources:
-  ProtoParquetJob:
+  PythonDependencyLayer:
+    Type: AWS::Serverless::LayerVersion
     Properties:
-      Type: AWS::Serverless::Function
-      CodeUri: parquet_factory
+      ContentUri: parquet_factory/dependencies.zip
+      CompatibleRuntimes: [python3.9]
+  ProtoParquetJob:
+    Type: AWS::Serverless::Function
+    Properties:
       Handler: job_producer.run
-      Runtime: python3.9
-      Timeout: 900
       Policies: [arn:aws:iam::aws:policy/AWSLambda_FullAccess]
       Environment:
           Variables:
@@ -26,12 +36,5 @@ Resources:
   ParquetFactory:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: parquet_factory
       Handler: parquet_job.run
-      Runtime: python3.9
-      Timeout: 900 #15min is max runtime for lambda
-      Policies: [arn:aws:iam::aws:policy/AWSS3_FullAccess]
-      Environment:
-        Variables:
-          PARQUET_S3_BUCKET: ""
-          GRPC_ENDPOINT: ""
+      # Policies: [arn:aws:iam::aws:policy/AWSS3_FullAccess]
