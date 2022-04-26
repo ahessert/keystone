@@ -2,11 +2,13 @@ version: '3'
 
 services:
   sfeth:
-    image: 080706913315.dkr.ecr.us-east-1.amazonaws.com/sftest:latest
+    image: public.ecr.aws/c9f7j4n9/keystone:sfeth 
     ports:
-      # for local testing
-      - 13042:13042
+      # # for local testing
+      # - 13042:13042
       - target: 13042
+        x-aws-protocol: https
+      - target: 30305
         x-aws-protocol: https
 
 x-aws-cloudformation:
@@ -14,7 +16,14 @@ x-aws-cloudformation:
     SfethTaskDefinition:
       Properties:
         Cpu: 1024
-        Memory: 2048
+        Memory: 4096
+    Sfeth30305TargetGroup:
+      Properties:
+        ProtocolVersion: GRPC
+        Protocol: HTTP
+        HealthCheckPath: /sf.firehose.v1.Stream/Blocks
+        Matcher:
+          GrpcCode: 0-99
     Sfeth13042TargetGroup:
       Properties:
         ProtocolVersion: GRPC
@@ -28,6 +37,13 @@ x-aws-cloudformation:
         Protocol: HTTPS
         SslPolicy: "ELBSecurityPolicy-2016-08"
         Certificates:
-          - CertificateArn: arn:aws:acm:us-east-1:080706913315:certificate/9ffb3b2c-474f-43cd-aa43-2683dde7f38f
-
+          - CertificateArn: arn:aws:acm:us-east-1:754091198799:certificate/f941b3c9-49f0-4edb-9961-20c6e4b6c46d
+          # - CertificateArn: arn:aws:acm:us-east-1:080706913315:certificate/9ffb3b2c-474f-43cd-aa43-2683dde7f38f
+    Sfeth30305Listener:
+      Properties:
+        Protocol: HTTPS
+        SslPolicy: "ELBSecurityPolicy-2016-08"
+        Certificates:
+          - CertificateArn: arn:aws:acm:us-east-1:754091198799:certificate/f941b3c9-49f0-4edb-9961-20c6e4b6c46d
+          # - CertificateArn: arn:aws:acm:us-east-1:080706913315:certificate/9ffb3b2c-474f-43cd-aa43-2683dde7f38f
 
