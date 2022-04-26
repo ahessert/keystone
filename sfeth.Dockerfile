@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM golang:1.18.0 as build
 
+EXPOSE 13042
+
 # Install Streaming Fast's deep-mind geth EVM node
 WORKDIR /src
 RUN git clone https://github.com/streamingfast/go-ethereum
