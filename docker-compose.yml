@@ -2,24 +2,48 @@ version: '3'
 
 services:
   sfeth:
-    build:
-      context: .
-      dockerfile: sfeth.Dockerfile
+    image: public.ecr.aws/c9f7j4n9/keystone:sfeth 
     ports:
-      - 13042:13042
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8547"]
-      interval: 90s
-      timeout: 10s
-      retries: 5
+      # # for local testing
+      # - 13042:13042
+      - target: 13042
+        x-aws-protocol: https
+      - target: 30305
+        x-aws-protocol: https
 
-  grpcurl:
-  
-    depends_on:
-      sfeth:
-        condition: service_healthy
-    build:
-      context: .
-      dockerfile: grpcurl.Dockerfile
-    ports: 
-      - 8080:8080
+x-aws-cloudformation:
+  Resources:
+    SfethTaskDefinition:
+      Properties:
+        Cpu: 1024
+        Memory: 4096
+    Sfeth30305TargetGroup:
+      Properties:
+        ProtocolVersion: GRPC
+        Protocol: HTTP
+        HealthCheckPath: /sf.firehose.v1.Stream/Blocks
+        Matcher:
+          GrpcCode: 0-99
+    Sfeth13042TargetGroup:
+      Properties:
+        ProtocolVersion: GRPC
+        Protocol: HTTP
+        HealthCheckPath: /sf.firehose.v1.Stream/Blocks
+        Matcher:
+          GrpcCode: 0-99
+
+    Sfeth13042Listener:
+      Properties:
+        Protocol: HTTPS
+        SslPolicy: "ELBSecurityPolicy-2016-08"
+        Certificates:
+          - CertificateArn: arn:aws:acm:us-east-1:754091198799:certificate/f941b3c9-49f0-4edb-9961-20c6e4b6c46d
+          # - CertificateArn: arn:aws:acm:us-east-1:080706913315:certificate/9ffb3b2c-474f-43cd-aa43-2683dde7f38f
+    Sfeth30305Listener:
+      Properties:
+        Protocol: HTTPS
+        SslPolicy: "ELBSecurityPolicy-2016-08"
+        Certificates:
+          - CertificateArn: arn:aws:acm:us-east-1:754091198799:certificate/f941b3c9-49f0-4edb-9961-20c6e4b6c46d
+          # - CertificateArn: arn:aws:acm:us-east-1:080706913315:certificate/9ffb3b2c-474f-43cd-aa43-2683dde7f38f
+
