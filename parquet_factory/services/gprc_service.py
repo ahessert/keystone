@@ -3,7 +3,7 @@ import grpc
 import protoc_outfiles.firehose_v1_pb2 as firehose_proto
 import protoc_outfiles.firehose_v1_pb2_grpc as firehose_grpc
 
-FIREHOSE_ENDPOINT = environ.get('GRPC_ENDPOINT')
+FIREHOSE_ENDPOINT = environ.get('GRPC_ENDPOINT', '127.0.0.1:13042') 
 
 class FirehoseGRPC():
 
