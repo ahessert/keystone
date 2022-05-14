@@ -17,9 +17,6 @@ RUN go install ./cmd/sfeth
 
 # Firehose is sfeths gRPC endpoint
 WORKDIR /src/firehose
-COPY ./sf.yaml ./sf.yaml
 WORKDIR /src/firehose/mindreader
 RUN geth --mainnet dumpgenesis > ./genesis.json
 WORKDIR /src/firehose
-
-ENTRYPOINT sfeth start

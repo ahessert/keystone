@@ -7,3 +7,5 @@
 */.DS_Store
 
 parquet_factory/dependencies.zip
+
+sf.local.yaml
