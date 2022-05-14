@@ -1,10 +1,10 @@
+import boto3
 import json
 from msilib.schema import Error
-from os import environ
-import boto3
 
-PARQUET_FACTORY_ARN = environ.get('PARQUET_FACTORY_ARN')
-AWS_REGION = environ.get('AWS_REGION')
+from environment import PARQUET_FACTORY_ARN, AWS_REGION
+
+
 BATCH_SIZE = 10000 # Number of blocks should be defined by the table depending on processing demands and must keep the job under 15 minutes (10 to be safe)
 
 LambdaClient = boto3.client('lambda', region_name=AWS_REGION)

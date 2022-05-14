@@ -6,6 +6,7 @@
 .DS_Store
 */.DS_Store
 
+parquet_factory/.env
 parquet_factory/dependencies.zip
 
 sf.local.yaml
