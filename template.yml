@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Keystone Lambdas
+  Keystone it the data pipeline from EVM node to parquet 
+  tables Cloudformation configuration (deploy with SAM)
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 900 #15min is max runtime for lambda
+    CodeUri: parquet_factory
+    Layers: [!Ref PythonDependencyLayer]
+    # VpcConfig:
+    #   SubnetIds: ["subnet-dda408b6", "subnet-61c8d21b", "subnet-3bd89a77"]
+    Environment:
+        Variables:
+          GRPC_ENDPOINT: "keystone.local:13042"
+          PARQUET_S3_BUCKET: ""
+
+Resources:
+  PythonDependencyLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: parquet_factory/dependencies.zip
+      CompatibleRuntimes: [python3.9]
+  ProtoParquetJob:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: job_producer.run
+      Policies: [arn:aws:iam::aws:policy/AWSLambda_FullAccess]
+      Environment:
+          Variables:
+            PARQUET_FACTORY_ARN: !GetAtt ParquetFactory.Arn
+  ParquetFactory:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: parquet_job.run
+      # Policies: [arn:aws:iam::aws:policy/AWSS3_FullAccess]

@@ -2,24 +2,17 @@ version: '3'
 
 services:
   sfeth:
-    build:
-      context: .
-      dockerfile: sfeth.Dockerfile
+    image: public.ecr.aws/c9f7j4n9/keystone:sfeth_from_backup
     ports:
       - 13042:13042
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - $HOME:/mnt
+    entrypoint: sfeth start --data-dir=/mnt/sf-data --config-file=/mnt/sf.yaml
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8547"]
       interval: 90s
       timeout: 10s
       retries: 5
-
-  grpcurl:
-  
-    depends_on:
-      sfeth:
-        condition: service_healthy
-    build:
-      context: .
-      dockerfile: grpcurl.Dockerfile
-    ports: 
-      - 8080:8080
