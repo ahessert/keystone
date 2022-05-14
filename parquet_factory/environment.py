@@ -2,7 +2,7 @@ import os
 from dotenv import dotenv_values
 
 config = {
-    **dotenv_values(".env") # load variables from .env file
+    **dotenv_values(".env"), # load variables from .env file
     **os.environ,  # override loaded values with environment variables
 }
 
