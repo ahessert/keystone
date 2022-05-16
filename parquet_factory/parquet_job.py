@@ -1,6 +1,6 @@
 from services.gprc_service import FirehoseGRPC
 from strategies import strategy_map
-from services.parquet_producer import make_table, write_parquet
+from services.parquet_writer import write_parquet
 
 
 def run(event, context):
@@ -9,21 +9,23 @@ def run(event, context):
     block_count = event.get("block_count")
 
     TableStrategy = strategy_map[tablename]
+    grpc_filters = TableStrategy.grpc_filters
+    parquet_schema = TableStrategy.parquet_schema
+
     Firehose = FirehoseGRPC()
 
     block_stream = Firehose.stream_blocks(
         start_block,
         block_count,
-        TableStrategy.grpc_filters(),
+        grpc_filters,
     )
 
-    # for message in block_stream:
-    #     TableStrategy.build_table(message)
-
-    table = make_table(block_stream)
-    write_parquet(table)
-
-    # grpc_stream > TableStrategy.build_table() > make_parquet
+    table_rows = [
+        TableStrategy.process_message(block) 
+        for block in block_stream
+    ]
+ 
+    write_parquet(table_rows, parquet_schema)
 
     
 if __name__ == "__main__":

@@ -1,14 +1,8 @@
 
 class Strategy():
+    grpc_filters = NotImplementedError
+    parquet_schema = NotImplementedError
 
     @staticmethod
-    def grpc_filters():
-        raise NotImplementedError
-
-    @staticmethod
-    def build_table():
-        raise NotImplementedError
-
-    @staticmethod
-    def parquet_partition():
+    def process_message():
         raise NotImplementedError
