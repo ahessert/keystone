@@ -1,6 +1,6 @@
 from services.gprc_service import FirehoseGRPC
 from strategies import strategy_map
-from services.parquet_producer import write_parquet
+from services.parquet_writer import write_parquet
 
 
 def run(event, context):
