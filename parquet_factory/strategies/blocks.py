@@ -1,17 +1,22 @@
 import protoc_outfiles.sfeth_codec_v1_pb2 as sfeth_proto
+import pyarrow as pa
 
 from strategies.strategy_base import Strategy 
 
 class Blocks(Strategy):
-    @staticmethod
-    def grpc_filters():
-        return []
+    grpc_filters = []
+    parquet_schema = pa.schema({
+        "number": pa.int64(), 
+        "nonce": pa.string(), 
+        "timestamp": pa.string()
+    })
 
     @staticmethod
-    def build_table(proto_object):
-        table_row = sfeth_proto.Block
-        return table_row
-        
-    @staticmethod
-    def parquet_partition():
-        return 'block_hash'
+    def process_message(proto_object):
+        proto = sfeth_proto.Block()
+        proto.ParseFromString(proto_object.block.value)
+        return {
+            "number": proto.number,
+            "nonce": str(proto.header.nonce),
+            "timestamp": str(proto.header.timestamp)
+        }
